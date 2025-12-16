@@ -2,7 +2,11 @@
 
 Sistema de auditoria inteligente desenvolvido para investigar fraudes, verificar compliance e responder perguntas sobre gastos corporativos na filial de Scranton da Dunder Mifflin.
 
-> 🚀 **INÍCIO RÁPIDO**: Veja [PROXIMAS_ETAPAS.md](PROXIMAS_ETAPAS.md) para configurar e executar o projeto agora!
+
+
+https://github.com/user-attachments/assets/e721473d-3541-4b8d-b473-15d63395bb08
+
+
 
 ## 📚 Índice
 
