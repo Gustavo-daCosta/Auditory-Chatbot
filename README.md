@@ -362,25 +362,8 @@ Auditory-Chatbot/
 ### Ingestão com problemas
 **Solução**: Delete a pasta `faiss_index` e reingira os dados
 
-## 📹 Vídeo de Demonstração
-
-[Link para o vídeo será adicionado aqui]
-
 ## 👨‍💻 Autor
 
 **Gustavo da Costa**
 - GitHub: [@Gustavo-daCosta](https://github.com/Gustavo-daCosta)
 
-## 📄 Licença
-
-Este projeto foi desenvolvido como atividade acadêmica.
-
----
-
-**Nota**: Este sistema é um protótipo educacional. Em produção, seria necessário:
-- Autenticação e autorização
-- Logging estruturado
-- Testes automatizados
-- Interface web (Streamlit/Gradio)
-- Rate limiting da API
-- Backup dos índices FAISS
