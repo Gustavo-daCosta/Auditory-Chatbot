@@ -8,7 +8,7 @@ import os
 # Adiciona o diretório src ao path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from agent import AuditoryAgent
+from agents.orchestrator_agent import OrchestratorAgent
 
 
 def print_banner():
@@ -37,17 +37,17 @@ def print_help():
 
 📊 EXEMPLOS DE PERGUNTAS:
 
-  Nível 1 - Compliance:
+  Agente 1 - Políticas:
     • Posso gastar 200 dólares em um jantar?
     • Qual o limite para despesas intermediárias?
     • Quem pode aprovar gastos acima de $500?
   
-  Nível 2 - Investigação de Emails:
+  Agente 2 - Investigação de emails:
     • O Michael está conspirando contra o Toby?
     • Alguém está planejando algo suspeito nos emails?
     • O que o Dwight disse sobre fraudes?
   
-  Nível 3 - Auditoria Contextual:
+  Agente 3 - Compliance:
     • Verifique transações suspeitas acima de $500
     • Existe alguma fraude combinada nos emails?
     • Quais gastos do Michael violam as regras?
@@ -70,8 +70,8 @@ def main():
     print("   (Isso pode levar alguns segundos...)\n")
     
     try:
-        # Inicializa o agente
-        agent = AuditoryAgent(verbose=False)
+        # Inicializa o orquestrador
+        agent = OrchestratorAgent(verbose=False)
         
         print("✅ Sistema inicializado com sucesso!\n")
         print_help()
@@ -80,14 +80,14 @@ def main():
         while True:
             try:
                 # Prompt para o usuário
-                pergunta = input("\n🔍 Digite sua pergunta (ou 'help' para ajuda): ").strip()
+                pergunta = input("\nDigite sua pergunta (ou 'help' para ajuda): ").strip()
                 
                 # Comandos especiais
                 if not pergunta:
                     continue
                 
                 if pergunta.lower() in ['sair', 'exit', 'quit', 'q']:
-                    print("\n👋 Encerrando o sistema. Até logo!")
+                    print("\nEncerrando o sistema. Até logo!")
                     break
                 
                 if pergunta.lower() == 'help':
@@ -100,7 +100,7 @@ def main():
                     continue
                 
                 # Processa a pergunta
-                print("\n⏳ Analisando... (O agente está pensando)\n")
+                print("\nAnalisando... (O agente está pensando)\n")
                 resposta = agent.query(pergunta)
                 
                 print("=" * 80)
@@ -110,7 +110,7 @@ def main():
                 print("=" * 80)
                 
             except KeyboardInterrupt:
-                print("\n\n👋 Operação cancelada. Encerrando...")
+                print("\n\nOperação cancelada. Encerrando...")
                 break
             except Exception as e:
                 print(f"\n❌ Erro ao processar pergunta: {e}")
@@ -120,15 +120,7 @@ def main():
         print(f"\n❌ ERRO: {e}")
         print("\n💡 SOLUÇÃO:")
         print("   Execute primeiro: python src/ingest_data.py")
-        print("   Isso irá carregar os dados no ChromaDB.\n")
-        sys.exit(1)
-    
-    except ValueError as e:
-        print(f"\n❌ ERRO: {e}")
-        print("\n💡 SOLUÇÃO:")
-        print("   1. Copie o arquivo .env.example para .env")
-        print("   2. Adicione sua GOOGLE_API_KEY no arquivo .env")
-        print("   3. Execute novamente\n")
+        print("   Isso irá carregar os dados no FISS.\n")
         sys.exit(1)
     
     except Exception as e:

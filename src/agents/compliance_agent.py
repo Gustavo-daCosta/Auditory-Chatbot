@@ -1,129 +1,28 @@
 """
-Definição das Ferramentas (Tools) para o Agente de Auditoria
-Implementa: policy_retriever_tool, email_search_tool e csv_analysis_tool
+Compliance Agent - Agente especializado em análise de transações
+Responsável por auditar gastos e identificar irregularidades
 """
 import os
 import pandas as pd
-from typing import Any
 from langchain.tools import Tool
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain.tools.retriever import create_retriever_tool
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
-class AuditoryTools:
-    """Classe que gerencia as ferramentas do agente de auditoria"""
+class ComplianceAgent:
+    """Agente especializado em análise de transações e auditoria de gastos"""
     
-    def __init__(self, persist_directory: str = "./faiss_index"):
-        """
-        Inicializa as ferramentas
-        
-        Args:
-            persist_directory: Diretório onde os índices FAISS estão salvos
-        """
-        self.persist_directory = persist_directory
-        
-        # Inicializa embeddings locais (sem API key)
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
-            model_kwargs={'device': 'cpu'},
-            encode_kwargs={'normalize_embeddings': True}
-        )
-        
+    def __init__(self):
+        """Inicializa o Compliance Agent"""
         # Carrega o CSV de transações
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         csv_path = os.path.join(base_dir, "data", "transacoes_bancarias.csv")
         
         if not os.path.exists(csv_path):
             raise FileNotFoundError(f"CSV não encontrado: {csv_path}")
         
         self.df_transactions = pd.read_csv(csv_path)
-        print(f"✅ CSV carregado: {len(self.df_transactions)} transações")
-        
-        # Inicializa as tools
-        self.tools = []
-        self._create_policy_retriever_tool()
-        self._create_email_search_tool()
-        self._create_csv_analysis_tool()
+        self.tool = self.analysis_tool()
     
-    def _create_policy_retriever_tool(self):
-        """Cria a ferramenta de busca na política de compliance"""
-        try:
-            # Carrega o índice FAISS
-            compliance_path = os.path.join(self.persist_directory, "compliance")
-            vectorstore = FAISS.load_local(
-                compliance_path,
-                self.embeddings,
-                allow_dangerous_deserialization=True
-            )
-            
-            # Cria o retriever
-            retriever = vectorstore.as_retriever(
-                search_type="similarity",
-                search_kwargs={"k": 5}
-            )
-            
-            # Cria a tool usando create_retriever_tool
-            policy_tool = create_retriever_tool(
-                retriever=retriever,
-                name="policy_retriever",
-                description=(
-                    "Busca informações na POLÍTICA DE COMPLIANCE da Dunder Mifflin. "
-                    "Use esta ferramenta quando precisar consultar REGRAS, LIMITES DE GASTOS, "
-                    "ALÇADAS DE APROVAÇÃO, CATEGORIAS PERMITIDAS ou qualquer norma corporativa. "
-                    "Exemplos de uso: 'Qual o limite para refeições?', 'Posso gastar X reais?', "
-                    "'Quem aprova despesas acima de $500?'"
-                )
-            )
-            
-            self.tools.append(policy_tool)
-            print("✅ Policy Retriever Tool criada")
-            
-        except Exception as e:
-            print(f"❌ Erro ao criar Policy Retriever Tool: {e}")
-            raise
-    
-    def _create_email_search_tool(self):
-        """Cria a ferramenta de busca nos emails"""
-        try:
-            # Carrega o índice FAISS
-            emails_path = os.path.join(self.persist_directory, "emails")
-            vectorstore = FAISS.load_local(
-                emails_path,
-                self.embeddings,
-                allow_dangerous_deserialization=True
-            )
-            
-            # Cria o retriever
-            retriever = vectorstore.as_retriever(
-                search_type="similarity",
-                search_kwargs={"k": 7}
-            )
-            
-            # Cria a tool usando create_retriever_tool
-            email_tool = create_retriever_tool(
-                retriever=retriever,
-                name="email_search",
-                description=(
-                    "Busca informações nos EMAILS INTERNOS da empresa. "
-                    "Use esta ferramenta para investigar CONVERSAS, CONSPIRAÇÕES, PLANOS, "
-                    "COMBINAÇÕES entre funcionários ou qualquer comunicação suspeita. "
-                    "Exemplos de uso: 'Michael está tramando contra Toby?', "
-                    "'Alguém combinou desvio de verba?', 'O que fulano disse sobre X?'"
-                )
-            )
-            
-            self.tools.append(email_tool)
-            print("✅ Email Search Tool criada")
-            
-        except Exception as e:
-            print(f"❌ Erro ao criar Email Search Tool: {e}")
-            raise
-    
-    def _create_csv_analysis_tool(self):
+    def analysis_tool(self):
         """Cria a ferramenta de análise do CSV de transações"""
         
         def analyze_transactions(query: str) -> str:
@@ -266,34 +165,8 @@ class AuditoryTools:
             )
         )
         
-        self.tools.append(csv_tool)
-        print("✅ CSV Analysis Tool criada")
+        return csv_tool
     
-    def get_tools(self) -> list:
-        """
-        Retorna a lista de ferramentas configuradas
-        
-        Returns:
-            Lista de tools para o agente
-        """
-        return self.tools
-
-
-def main():
-    """Testa as ferramentas"""
-    print("🔧 Testando as ferramentas...\n")
-    
-    try:
-        tools_manager = AuditoryTools()
-        tools = tools_manager.get_tools()
-        
-        print(f"\n✨ {len(tools)} ferramentas criadas com sucesso!")
-        for tool in tools:
-            print(f"  - {tool.name}: {tool.description[:80]}...")
-        
-    except Exception as e:
-        print(f"❌ Erro: {e}")
-
-
-if __name__ == "__main__":
-    main()
+    def get_tool(self):
+        """Retorna a ferramenta do agente"""
+        return self.tool

@@ -4,3 +4,4 @@ faiss_index/
 *.index
 *.pkl
 .env
+test_system.py

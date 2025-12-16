@@ -1,6 +1,6 @@
 """
-Agente de Auditoria ReAct (Reason + Act)
-Orquestra as ferramentas para responder perguntas investigativas
+Orchestrator Agent - Agente orquestrador principal
+Coordena os agentes especializados (Policy, Conspiracy, Compliance)
 """
 import os
 from typing import Optional
@@ -9,16 +9,19 @@ from langchain.agents import AgentExecutor, create_react_agent
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 
-from tools import AuditoryTools
+from .policy_agent import PolicyAgent
+from .conspiracy_agent import ConspiracyAgent
+from .compliance_agent import ComplianceAgent
 
 load_dotenv()
 
-class AuditoryAgent:
-    """Agente de auditoria inteligente para a Dunder Mifflin"""
+
+class OrchestratorAgent:
+    """Agente orquestrador que coordena os agentes especializados"""
     
     def __init__(self, verbose: bool = True):
         """
-        Inicializa o agente de auditoria
+        Inicializa o agente orquestrador
         
         Args:
             verbose: Se True, exibe o raciocínio do agente
@@ -27,8 +30,6 @@ class AuditoryAgent:
         
         # Verifica API key
         api_key = os.getenv("GOOGLE_API_KEY")
-        if not api_key or api_key == "your_api_key_here":
-            raise ValueError("GOOGLE_API_KEY não configurada. ")
         
         # Inicializa o LLM (Gemini)
         self.llm = ChatGoogleGenerativeAI(
@@ -37,25 +38,32 @@ class AuditoryAgent:
             google_api_key=api_key
         )
         
-        # Carrega as ferramentas
-        print("🔧 Inicializando ferramentas...")
-        tools_manager = AuditoryTools()
-        self.tools = tools_manager.get_tools()
+        # Inicializa os agentes especializados
+        self.policy_agent = PolicyAgent()
+        self.conspiracy_agent = ConspiracyAgent()
+        self.compliance_agent = ComplianceAgent()
         
-        # Cria o agente ReAct
-        self.agent = self._create_react_agent()
+        # Coleta as ferramentas dos agentes
+        self.tools = [
+            self.policy_agent.get_tool(),
+            self.conspiracy_agent.get_tool(),
+            self.compliance_agent.get_tool()
+        ]
         
-        print("✅ Agente de auditoria inicializado!\n")
+        # Cria o agente orquestrador
+        self.agent = self._create_orchestrator_agent()
+        
+        print("\nOrquestrador inicializado!\n")
     
-    def _create_react_agent(self) -> AgentExecutor:
+    def _create_orchestrator_agent(self) -> AgentExecutor:
         """
-        Cria o agente ReAct com o prompt personalizado
+        Cria o agente orquestrador com o prompt personalizado
         
         Returns:
             Agente executor configurado
         """
-        # Template de prompt para o agente ReAct
-        react_prompt = PromptTemplate.from_template("""
+        # Template de prompt para o agente orquestrador
+        orchestrator_prompt = PromptTemplate.from_template("""
 Você é Toby Flenderson Jr., um AGENTE DE AUDITORIA ESPECIALIZADO da Dunder Mifflin.
 Seu trabalho é investigar fraudes, verificar compliance e responder perguntas sobre 
 gastos corporativos com PRECISÃO e EVIDÊNCIAS.
@@ -71,7 +79,7 @@ FERRAMENTAS DISPONÍVEIS:
 
 NOMES DAS FERRAMENTAS: {tool_names}
 
-INSTRUÇÕES DE RACIOCÍNIO (ReAct):
+INSTRUÇÕES DE RACIOCÍNIO (ORQUESTRADOR):
 Para cada pergunta, você deve seguir este ciclo:
 
 Thought: Analise o que você precisa descobrir
@@ -110,7 +118,7 @@ HISTÓRICO DE PENSAMENTOS E AÇÕES:
         agent = create_react_agent(
             llm=self.llm,
             tools=self.tools,
-            prompt=react_prompt
+            prompt=orchestrator_prompt
         )
         
         # Cria o executor
@@ -127,7 +135,7 @@ HISTÓRICO DE PENSAMENTOS E AÇÕES:
     
     def query(self, question: str) -> str:
         """
-        Faz uma pergunta ao agente
+        Faz uma pergunta ao agente orquestrador
         
         Args:
             question: Pergunta do usuário
@@ -140,35 +148,34 @@ HISTÓRICO DE PENSAMENTOS E AÇÕES:
             return result["output"]
         except Exception as e:
             return f"❌ Erro ao processar pergunta: {str(e)}"
-    
 
 
 def main():
-    """Função principal"""
-    print("🚀 Inicializando Agente de Auditoria da Dunder Mifflin...\n")
+    """Função principal para teste"""
+    print("Inicializando Orquestrador de Auditoria da Dunder Mifflin...\n")
     
     try:
-        agent = AuditoryAgent(verbose=True)
+        orchestrator = OrchestratorAgent(verbose=True)
         
-        print("Agente pronto! Digite 'sair' para encerrar.\n")
+        print("Orquestrador pronto! Digite 'sair' para encerrar.\n")
         
         while True:
             pergunta = input("🔍 Sua pergunta: ").strip()
             
             if pergunta.lower() in ['sair', 'exit', 'quit']:
-                print("\n👋 Encerrando agente. Até logo!")
+                print("\n Encerrando orquestrador. Até logo!")
                 break
             
             if not pergunta:
                 continue
             
             print()
-            resposta = agent.query(pergunta)
-            print(f"\n💡 Resposta:\n{resposta}\n")
+            resposta = orchestrator.query(pergunta)
+            print(f"\n Resposta:\n{resposta}\n")
             print("-" * 80 + "\n")
     
     except Exception as e:
-        print(f"❌ Erro fatal: {e}")
+        print(f"Erro: {e}")
 
 
 if __name__ == "__main__":

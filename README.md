@@ -17,7 +17,7 @@ Sistema de auditoria inteligente desenvolvido para investigar fraudes, verificar
 
 ## 📋 Sobre o Projeto
 
-Este é um **Agente Inteligente ReAct** (Reason + Act) que utiliza LangChain + FAISS + Google Gemini para resolver os três níveis do desafio de auditoria proposto por Toby Flenderson:
+Este é um **Agente Inteligente Orquestrador** que utiliza LangChain + FAISS + Google Gemini para resolver os três níveis do desafio de auditoria proposto por Toby Flenderson:
 
 1. **Nível 1**: Chatbot de Compliance (RAG sobre política de compliance)
 2. **Nível 2**: Investigação de Conspirações (Busca semântica em emails)
@@ -25,7 +25,7 @@ Este é um **Agente Inteligente ReAct** (Reason + Act) que utiliza LangChain + F
 
 ## 🏗️ Arquitetura do Sistema
 
-### Visão Geral
+### Visão Geral - Arquitetura Multi-Agente
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -35,26 +35,30 @@ Este é um **Agente Inteligente ReAct** (Reason + Act) que utiliza LangChain + F
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    AGENTE ReAct                                 │
-│              (LangChain + Gemini 2.0)                           │
+│                  ORCHESTRATOR AGENT                             │
+│              (Coordenador Principal)                            │
+│              LangChain + Gemini 2.0                             │
 │                                                                 │
 │  Ciclo: Thought → Action → Observation → ... → Final Answer    │
-└────┬────────────────┬────────────────┬────────────────┬─────────┘
-     │                │                │                │
-     ▼                ▼                ▼                ▼
-┌─────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│ Policy  │    │  Email   │    │   CSV    │    │  Pandas  │
-│Retriever│    │  Search  │    │ Analysis │    │   Tool   │
-│  Tool   │    │   Tool   │    │   Tool   │    │          │
-└────┬────┘    └────┬─────┘    └────┬─────┘    └────┬─────┘
-     │              │               │               │
-     ▼              ▼               ▼               ▼
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│ChromaDB │    │ChromaDB │    │Pandas DF│    │In-Memory│
-│compliance    │ emails  │    │   CSV   │    │Processing
-│Collection│    │Collection    │  Data   │    │         │
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
+└────┬────────────────┬────────────────┬───────────────────────────┘
+     │                │                │
+     ▼                ▼                ▼
+┌──────────┐    ┌──────────┐    ┌──────────┐
+│ POLICY   │    │CONSPIRACY│    │COMPLIANCE│
+│  AGENT   │    │  AGENT   │    │  AGENT   │
+│          │    │          │    │          │
+│📋 Regras │    │🕵️ Emails │    │💰 Gastos │
+└────┬─────┘    └────┬─────┘    └────┬─────┘
+     │               │               │
+     ▼               ▼               ▼
+┌─────────┐    ┌─────────┐    ┌─────────┐
+│  FAISS  │    │  FAISS  │    │Pandas DF│
+│compliance    │ emails  │    │   CSV   │
+│  Index  │    │  Index  │    │  Data   │
+└─────────┘    └─────────┘    └─────────┘
 ```
+
+> 📖 **Detalhes**: Veja [ARQUITETURA_AGENTES.md](ARQUITETURA_AGENTES.md) para documentação completa da arquitetura multi-agente
 
 ### Componentes Principais
 
@@ -65,33 +69,32 @@ Este é um **Agente Inteligente ReAct** (Reason + Act) que utiliza LangChain + F
   - `emails`: Emails internos divididos em chunks de 1000 caracteres
 - **Embeddings**: Google Generative AI Embeddings (`models/embedding-001`)
 
-#### 2. **Camada de Ferramentas** (`src/tools.py`)
+#### 2. **Camada de Agentes Especializados** (`src/agents/`)
 
-##### 🔍 **Policy Retriever Tool**
-- **Tipo**: `create_retriever_tool` (LangChain)
-- **Fonte**: Índice `compliance` no FAISS
-- **Uso**: Responde perguntas sobre regras, limites e políticas
+##### 📋 **Policy Agent** (`policy_agent.py`)
+- **Especialidade**: Políticas e regras corporativas
+- **Fonte**: Índice FAISS `compliance`
+- **Ferramenta**: `policy_retriever`
+- **Uso**: Consultar regras, limites de gastos, alçadas de aprovação
 - **Exemplo**: "Qual o limite para jantares com cliente?"
 
-##### 📧 **Email Search Tool**
-- **Tipo**: `create_retriever_tool` (LangChain)
-- **Fonte**: Índice `emails` no FAISS
-- **Uso**: Investiga conversas, conspirações e planos
+##### 🕵️ **Conspiracy Agent** (`conspiracy_agent.py`)
+- **Especialidade**: Investigação de comunicações internas
+- **Fonte**: Índice FAISS `emails`
+- **Ferramenta**: `email_search`
+- **Uso**: Detectar conversas suspeitas, conspirações, planos fraudulentos
 - **Exemplo**: "Michael está tramando contra Toby?"
 
-##### 📊 **CSV Analysis Tool**
-- **Tipo**: `Tool` customizada (Python + Pandas)
-- **Fonte**: DataFrame do arquivo `transacoes_bancarias.csv`
-- **Capabilities**:
-  - Buscar transações por valor (acima de X, exatamente X)
-  - Filtrar por funcionário
-  - Agrupar por categoria
-  - Análises estatísticas (soma, média, máximo)
+##### 💰 **Compliance Agent** (`compliance_agent.py`)
+- **Especialidade**: Auditoria de transações financeiras
+- **Fonte**: DataFrame CSV `transacoes_bancarias.csv`
+- **Ferramenta**: `csv_analysis`
+- **Capabilities**: Buscar por valor, funcionário, categoria, análises estatísticas
 - **Exemplo**: "Quais transações acima de $500?"
 
-#### 3. **Camada do Agente** (`src/agent.py`)
+#### 3. **Camada de Orquestração** (`src/agents/orchestrator_agent.py`)
 
-##### Agente ReAct (Reason + Act)
+##### 🎯 Agente Orquestrador
 - **LLM**: Google Gemini 2.0 Flash Exp
 - **Temperature**: 0 (determinístico)
 - **Framework**: LangChain `create_react_agent`
@@ -100,7 +103,7 @@ Este é um **Agente Inteligente ReAct** (Reason + Act) que utiliza LangChain + F
   - Instruções para multi-hop reasoning
   - Obrigação de citar fontes e evidências
 
-**Fluxo de Raciocínio (ReAct Loop)**:
+**Fluxo de Raciocínio (Loop de Orquestração)**:
 ```
 1. Thought:   "O usuário quer saber se pode gastar $200 em jantar"
 2. Action:    policy_retriever
@@ -287,6 +290,7 @@ Ou teste individualmente cada nível com perguntas específicas.
 ```
 Auditory-Chatbot/
 ├── README.md                    # Este arquivo
+├── ARQUITETURA_AGENTES.md       # 🆕 Documentação da arquitetura multi-agente
 ├── requirements.txt             # Dependências Python
 ├── .env.example                 # Template de variáveis de ambiente
 ├── .gitignore                   # Arquivos ignorados pelo Git
@@ -295,11 +299,18 @@ Auditory-Chatbot/
 │   ├── emails.txt               # Dump de emails internos
 │   └── transacoes_bancarias.csv # Extrato de gastos
 ├── src/
+│   ├── agents/                  # 🆕 Pasta de agentes especializados
+│   │   ├── __init__.py          # Exports dos agentes
+│   │   ├── orchestrator_agent.py # 🎯 Agente Orquestrador (coordenador)
+│   │   ├── policy_agent.py      # 📋 Policy Agent (regras/compliance)
+│   │   ├── conspiracy_agent.py  # 🕵️ Conspiracy Agent (emails/investigação)
+│   │   └── compliance_agent.py  # 💰 Compliance Agent (transações/auditoria)
 │   ├── ingest_data.py           # Módulo de ingestão
-│   ├── tools.py                 # Definição das 3 ferramentas
-│   ├── agent.py                 # Agente ReAct
-│   └── main.py                  # Interface principal
+│   ├── tools.py                 # [DEPRECATED] Mantido para compatibilidade
+│   └── main.py                  # Interface principal (usa OrchestratorAgent)
 └── faiss_index/                 # Índices vetoriais (gerado)
+    ├── compliance/              # Índice de políticas
+    └── emails/                  # Índice de emails
 ```
 
 ## 🔧 Tecnologias Utilizadas
@@ -313,7 +324,7 @@ Auditory-Chatbot/
 ## 🎯 Decisões de Design
 
 ### Por que LangChain?
-- Abstração robusta para agentes ReAct
+- Abstração robusta para agentes orquestradores
 - Sistema de tools maduro e extensível
 - Integração nativa com FAISS e Gemini
 
